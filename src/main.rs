@@ -47,7 +47,10 @@ impl Lox {
         let tokens = tokens_result.unwrap();
         
         let mut parser = parser::Parser::new(tokens);
-        let _expr = parser.parse();
+        let expr = parser.parse();
+        if expr.is_none() {
+            eprintln!("parsing err!");
+        }
     }
 }
 
