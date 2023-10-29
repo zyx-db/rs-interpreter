@@ -1,5 +1,6 @@
 mod errors;
 mod parsing;
+mod ast;
 
 use parsing::scanner;
 

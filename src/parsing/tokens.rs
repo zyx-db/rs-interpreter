@@ -1,4 +1,4 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub enum TokenType {
     LEFT_PAREN,
     RIGHT_PAREN,
@@ -47,11 +47,11 @@ pub enum TokenType {
 
 #[derive(Clone)]
 pub struct Token {
-    variant: TokenType,
-    lexeme: String,
-    string: Option<String>,
-    int: Option<f64>,
-    line: u32,
+    pub variant: TokenType,
+    pub lexeme: String,
+    pub string: Option<String>,
+    pub int: Option<f64>,
+    pub line: u32,
 }
 
 // TODO:
