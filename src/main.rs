@@ -1,8 +1,7 @@
 mod errors;
 mod parsing;
-mod ast;
 
-use parsing::scanner;
+use parsing::{scanner, parser};
 
 struct Lox {
     has_error: bool,
@@ -39,15 +38,16 @@ impl Lox {
 
     fn run(&self, input: &String){
         let mut scanner = scanner::Scanner::new(input.to_owned());
-        let tokens = scanner.scan_tokens(); 
-        match &tokens {
+        let tokens_result = scanner.scan_tokens(); 
+        match &tokens_result {
             Err(_) => {return}
             Ok(_) => {}
         }
-        for token in tokens.unwrap() {
-            println!("{}", token);
-            _ = stdout().flush();
-        }
+
+        let tokens = tokens_result.unwrap();
+        
+        let mut parser = parser::Parser::new(tokens);
+        let _expr = parser.parse();
     }
 }
 

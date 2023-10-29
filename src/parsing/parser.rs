@@ -1,29 +1,41 @@
 use super::tokens::{Token, TokenType};
 use super::expressions::*;
 
-struct Parser {
+pub struct Parser {
     tokens: Vec<Token>,
     current: usize,
 }
 
 impl Parser {
-    fn new(tokens: Vec<Token>) -> Self {
+    pub fn parse(&mut self) -> Result<Box<dyn Expr>, String> {
+       return self.expression();
+    }
+
+    pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
     }
 
-    fn equality(&mut self) -> Box<dyn Expr> {
-        let mut expr = self.comparison();
+    fn expression(&mut self) -> Result<Box<dyn Expr>, String> {
+        return self.equality();
+    }
 
-        while self.matching(vec![TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
+    fn equality(&mut self) -> Result<Box<dyn Expr>, String> {
+        let val = self.comparison();
+
+        let mut expr = val.unwrap();
+
+        while self.matching(&vec![TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
             let operator = self.previous();
-            let right = self.comparison();
+            let tmp_right = self.comparison();
+
+            let right = tmp_right.unwrap();
             expr = Box::new(Binary::new(expr, operator, right));
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn matching(&mut self, types: Vec<TokenType>) -> bool {
+    fn matching(&mut self, types: &Vec<TokenType>) -> bool {
         for t in types.iter(){
             if self.check(t.clone()) {
                 self.advance();
@@ -34,8 +46,9 @@ impl Parser {
         false
     }
 
-    fn comparison(&mut self) -> Box<dyn Expr> {
-        let mut expr = self.term();
+    fn comparison(&mut self) -> Result<Box<dyn Expr>, String> {
+        let val = self.term();
+        let mut expr = val.unwrap();
         let token_types = vec![
             TokenType::GREATER,
             TokenType::GREATER_EQUAL,
@@ -43,13 +56,15 @@ impl Parser {
             TokenType::LESS_EQUAL
         ];
 
-        while self.matching(token_types) {
+        while self.matching(&token_types) {
             let operator = self.previous();
-            let right = self.term();
+            let tmp_right = self.term();
+
+            let right = tmp_right.unwrap();
             expr = Box::new(Binary::new(expr, operator, right));
         }
 
-        expr
+        Ok(expr)
     }
 
     fn check(&mut self, t: TokenType) -> bool {
@@ -71,83 +86,92 @@ impl Parser {
     }
 
     fn peek(&self) -> Token {
-        self.tokens[self.current]
+        self.tokens[self.current].clone()
     }
 
     fn previous(&self) -> Token {
-        self.tokens[self.current - 1]
+        self.tokens[self.current - 1].clone()
     }
 
-    fn term(&mut self) -> Box<dyn Expr> {
-        let mut expr = self.factor();
+    fn term(&mut self) -> Result<Box<dyn Expr>, String> {
+        let val = self.factor();
+
+        let mut expr = val.unwrap();
         let token_types = vec![
             TokenType::MINUS,
             TokenType::PLUS
         ];
 
-        while self.matching(token_types) {
+        while self.matching(&token_types) {
             let operator = self.previous();
-            let right = self.factor();
+            let tmp_right = self.factor();
+
+            let right = tmp_right.unwrap();
             expr = Box::new(Binary::new(expr, operator, right));
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn factor(&mut self) -> Box<dyn Expr> {
-        let mut expr = self.unary();
+    fn factor(&mut self) -> Result<Box<dyn Expr>, String> {
+        let val = self.unary(); 
+
+        let mut expr = val.unwrap();
         let token_types = vec![
             TokenType::SLASH,
             TokenType::STAR
         ];
 
-        while self.matching(token_types) {
+        while self.matching(&token_types) {
             let operator = self.previous();
-            let right = self.unary();
+            let tmp_right = self.unary();
+
+            let right = tmp_right.unwrap();
             expr = Box::new(Binary::new(expr, operator, right));
         }
 
-        expr
+        Ok(expr)
     }
 
-    fn unary(&mut self) -> Box<dyn Expr> {
+    fn unary(&mut self) -> Result<Box<dyn Expr>, String> {
         let token_types = vec![
             TokenType::BANG,
             TokenType::MINUS
         ];
-        if self.matching(token_types) {
+        if self.matching(&token_types) {
             let operator = self.previous();
-            let right = self.unary();
-            return Box::new(Unary::new(operator, right));
+            if let Ok(right) = self.unary(){
+                return Ok(Box::new(Unary::new(operator, right)));
+            }
         }
 
         self.primary()
     }
 
-    fn primary(&mut self) -> Box<dyn Expr> {
-        if self.matching(vec![TokenType::FALSE]) {
-            return Box::new(Literal::Bool(false));
+    fn primary(&mut self) -> Result<Box<dyn Expr>, String> {
+        if self.matching(&vec![TokenType::FALSE]) {
+            return Ok(Box::new(Literal::Bool(false)));
         }
-        if self.matching(vec![TokenType::TRUE]) {
-            return Box::new(Literal::Bool(true));
+        if self.matching(&vec![TokenType::TRUE]) {
+            return Ok(Box::new(Literal::Bool(true)));
         }
-        if self.matching(vec![TokenType::NIL]) {
-            return Box::new(Literal::Nil);
+        if self.matching(&vec![TokenType::NIL]) {
+            return Ok(Box::new(Literal::Nil));
         }
-        if self.matching(vec![TokenType::NUMBER]) {
+        if self.matching(&vec![TokenType::NUMBER]) {
             let val = self.previous().int.unwrap();
-            return Box::new(Literal::Int(val));
+            return Ok(Box::new(Literal::Int(val)));
         }
-        if self.matching(vec![TokenType::STRING]) {
+        if self.matching(&vec![TokenType::STRING]) {
             let s = self.previous().string.unwrap();
-            return Box::new(Literal::S(s));
+            return Ok(Box::new(Literal::S(s)));
         }
-        if self.matching(vec![TokenType::LEFT_PAREN]) {
-           let expr = self.expression(); 
+        if self.matching(&vec![TokenType::LEFT_PAREN]) {
+           let expr = self.expression().unwrap(); 
            self.consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.".to_owned());
-           return Box::new(Grouping::new(expr));
+           return Ok(Box::new(Grouping::new(expr)));
         }
-        Box::new(Literal::Nil)
+        Err("Expect expression.".to_owned())
     }
 
     fn consume(&mut self, variant: TokenType, msg: String) -> Result<Token, String> {
