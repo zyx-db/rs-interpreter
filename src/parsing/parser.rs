@@ -1,3 +1,5 @@
+use crate::errors::err::error;
+
 use super::tokens::{Token, TokenType};
 use super::expressions::*;
 
@@ -21,12 +23,14 @@ impl Parser {
 
     fn equality(&mut self) -> Option<Box<dyn Expr>> {
         let val = self.comparison();
+        if val.is_none() {return None;}
 
         let mut expr = val.unwrap();
 
         while self.matching(&vec![TokenType::BANG_EQUAL, TokenType::EQUAL_EQUAL]) {
             let operator = self.previous();
             let tmp_right = self.comparison();
+            if tmp_right.is_none(){ return None;}
 
             let right = tmp_right.unwrap();
             expr = Box::new(Binary::new(expr, operator, right));
@@ -48,6 +52,8 @@ impl Parser {
 
     fn comparison(&mut self) -> Option<Box<dyn Expr>> {
         let val = self.term();
+        if val.is_none() {return None;}
+
         let mut expr = val.unwrap();
         let token_types = vec![
             TokenType::GREATER,
@@ -59,6 +65,7 @@ impl Parser {
         while self.matching(&token_types) {
             let operator = self.previous();
             let tmp_right = self.term();
+            if tmp_right.is_none(){ return None;}
 
             let right = tmp_right.unwrap();
             expr = Box::new(Binary::new(expr, operator, right));
@@ -95,6 +102,7 @@ impl Parser {
 
     fn term(&mut self) -> Option<Box<dyn Expr>> {
         let val = self.factor();
+        if val.is_none() {return None;}
 
         let mut expr = val.unwrap();
         let token_types = vec![
@@ -105,6 +113,7 @@ impl Parser {
         while self.matching(&token_types) {
             let operator = self.previous();
             let tmp_right = self.factor();
+            if tmp_right.is_none() {return None;}
 
             let right = tmp_right.unwrap();
             expr = Box::new(Binary::new(expr, operator, right));
@@ -115,6 +124,7 @@ impl Parser {
 
     fn factor(&mut self) -> Option<Box<dyn Expr>> {
         let val = self.unary(); 
+        if val.is_none(){ return None;}
 
         let mut expr = val.unwrap();
         let token_types = vec![
@@ -125,6 +135,7 @@ impl Parser {
         while self.matching(&token_types) {
             let operator = self.previous();
             let tmp_right = self.unary();
+            if tmp_right.is_none(){return None;}
 
             let right = tmp_right.unwrap();
             expr = Box::new(Binary::new(expr, operator, right));
@@ -167,7 +178,10 @@ impl Parser {
             return Some(Box::new(Literal::S(s)));
         }
         if self.matching(&vec![TokenType::LEFT_PAREN]) {
-           let expr = self.expression().unwrap(); 
+           let val = self.expression(); 
+           if val.is_none(){ return None; }
+
+           let expr = val.unwrap();
            self.consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.".to_owned());
            return Some(Box::new(Grouping::new(expr)));
         }
@@ -178,6 +192,30 @@ impl Parser {
         if self.check(variant) {
             return Some(self.advance());
         } 
+        error(self.peek().line, &msg);
         None
+    }
+
+    fn synchronize(&mut self){
+        self.advance();
+        while !self.is_at_end() {
+            if self.previous().variant == TokenType::SEMICOLON{
+                return;
+            }
+            
+            match self.peek().variant{
+                TokenType::CLASS => {return;}
+                TokenType::DEF => {return;}
+                TokenType::VAR => {return;}
+                TokenType::FOR=> {return;}
+                TokenType::IF => {return;}
+                TokenType::WHILE => {return;}
+                TokenType::PRINT => {return;}
+                TokenType::RETURN => {return;}
+                _ => {}
+            }
+
+            self.advance();
+        }
     }
 }
