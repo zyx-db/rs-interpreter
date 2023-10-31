@@ -1,11 +1,14 @@
 use super::tokens::Token;
+use super::visitor::Visitor;
 
-pub trait Expr {}
+pub trait Expr {
+    fn accept_s(&self, p: &dyn Visitor<String>) -> String;
+}
 
 pub struct Binary {
-    left: Box<dyn Expr>,
-    operator: Token,
-    right: Box<dyn Expr>,
+    pub left: Box<dyn Expr>,
+    pub operator: Token,
+    pub right: Box<dyn Expr>,
 }
 
 impl Binary {
@@ -15,7 +18,7 @@ impl Binary {
 }
 
 pub struct Grouping {
-    expr: Box<dyn Expr>,
+    pub expr: Box<dyn Expr>,
 }
 
 impl Grouping {
@@ -32,8 +35,8 @@ pub enum Literal {
 }
 
 pub struct Unary {
-    operator: Token,
-    right: Box<dyn Expr>,
+    pub operator: Token,
+    pub right: Box<dyn Expr>,
 }
 
 impl Unary {
@@ -42,7 +45,23 @@ impl Unary {
     }
 }
 
-impl Expr for Binary{}
-impl Expr for Grouping{}
-impl Expr for Literal{}
-impl Expr for Unary{}
+impl Expr for Binary{
+    fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+        return p.visit_binary(self);
+    }
+}
+impl Expr for Grouping{
+    fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+        return p.visit_grouping(self);
+    }
+}
+impl Expr for Literal{
+    fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+        return p.visit_literal(self);
+    }
+}
+impl Expr for Unary{
+    fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+        return p.visit_unary(self);
+    }
+}

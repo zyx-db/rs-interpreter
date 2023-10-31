@@ -1,7 +1,7 @@
 mod errors;
 mod parsing;
 
-use parsing::{scanner, parser};
+use parsing::{scanner, parser, visitor};
 
 struct Lox {
     has_error: bool,
@@ -50,7 +50,11 @@ impl Lox {
         let expr = parser.parse();
         if expr.is_none() {
             eprintln!("parsing err!");
+            return;
         }
+        let printer = visitor::Printer::new();
+        let res = printer.print(expr.unwrap());
+        println!("{}", res);
     }
 }
 
