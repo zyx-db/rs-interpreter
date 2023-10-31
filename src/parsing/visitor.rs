@@ -1,6 +1,5 @@
-use std::fmt::format;
-
 use super::expressions::{Binary, Grouping, Literal, Unary, Expr};
+use super::tokens::TokenType;
 
 pub trait Visitor<T>{
     fn visit_binary(&self, b: &Binary) -> T;
@@ -54,5 +53,60 @@ impl Visitor<String> for Printer {
         let op = u.operator.lexeme.clone();
         let right = u.right.accept_s(self);
         return format!("({} {})", op, right);
+    }
+}
+
+pub struct Interpreter {}
+
+impl Interpreter {
+    pub fn new() -> Self {
+        Interpreter {  }
+    }
+
+    pub fn evaluate(&self, e: Box<dyn Expr>) -> Literal {
+        e.accept_l(self)
+    }
+}
+
+impl Visitor<Literal> for Interpreter {
+    fn visit_binary(&self, b: &Binary) -> Literal {
+        let left = b.left.accept_l(self);
+        let right = b.right.accept_l(self);
+
+        match (&b.operator.variant, left, right) {
+            (TokenType::PLUS, Literal::Int(a), Literal::Int(b)) => {
+                return Literal::Int(a + b);
+            }
+            (TokenType::SLASH, Literal::Int(a), Literal::Int(b)) => {
+                return Literal::Int(a / b); 
+            }
+            (TokenType::MINUS, Literal::Int(a), Literal::Int(b)) => {
+                return Literal::Int(a - b);
+            }
+            (TokenType::STAR, Literal::Int(a), Literal::Int(b)) => {
+                return Literal::Int(a * b);
+            }
+            (_, _ ,_) => {
+                return Literal::Nil;
+            } 
+        }
+    }
+    fn visit_grouping(&self, g: &Grouping) -> Literal {
+        g.expr.accept_l(self)
+    } 
+    fn visit_literal(&self, l: &Literal) -> Literal {
+        l.clone()
+    }
+    fn visit_unary(&self, u: &Unary) -> Literal {
+        let right = u.right.accept_l(self);
+
+        match (&u.operator.variant, right) {
+            (TokenType::MINUS, Literal::Int(i)) => {
+                return Literal::Int(-i);
+            }
+            (_,  _) => {
+                return Literal::Nil;
+            }
+        }
     }
 }

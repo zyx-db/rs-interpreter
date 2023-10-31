@@ -3,6 +3,7 @@ use super::visitor::Visitor;
 
 pub trait Expr {
     fn accept_s(&self, p: &dyn Visitor<String>) -> String;
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal;
 }
 
 pub struct Binary {
@@ -27,6 +28,7 @@ impl Grouping {
     }
 }
 
+#[derive(Clone, Debug)]
 pub enum Literal {
     S(String),
     Int(f64),
@@ -49,9 +51,15 @@ impl Expr for Binary{
     fn accept_s(&self, p: &dyn Visitor<String>) -> String {
         return p.visit_binary(self);
     }
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal {
+        return p.visit_binary(self);
+    }
 }
 impl Expr for Grouping{
     fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+        return p.visit_grouping(self);
+    }
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal {
         return p.visit_grouping(self);
     }
 }
@@ -59,9 +67,15 @@ impl Expr for Literal{
     fn accept_s(&self, p: &dyn Visitor<String>) -> String {
         return p.visit_literal(self);
     }
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal {
+        return p.visit_literal(self);
+    }
 }
 impl Expr for Unary{
     fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+        return p.visit_unary(self);
+    }
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal {
         return p.visit_unary(self);
     }
 }

@@ -54,8 +54,6 @@ pub struct Token {
     pub line: u32,
 }
 
-// TODO:
-// display for Token and Constructor
 impl Token {
     pub fn new(var: TokenType, lexeme: String, line: u32) -> Self {
         Token {

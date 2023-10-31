@@ -52,9 +52,12 @@ impl Lox {
             eprintln!("parsing err!");
             return;
         }
-        let printer = visitor::Printer::new();
-        let res = printer.print(expr.unwrap());
-        println!("{}", res);
+        // let printer = visitor::Printer::new();
+        // let str_tree = printer.print(expr.unwrap());
+        // println!("{}", str_tree);
+        let interpreter = Interpreter::new();
+        let res = interpreter.evaluate(expr.unwrap());
+        println!("{:?}", res);
     }
 }
 
@@ -63,6 +66,8 @@ use std::{
     fs::File,
     io::{self, stdout, BufRead, BufReader, Write},
 };
+
+use crate::parsing::visitor::Interpreter;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
