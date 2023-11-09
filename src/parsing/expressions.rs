@@ -1,9 +1,11 @@
+use crate::errors::err::RuntimeErr;
+
 use super::tokens::Token;
 use super::visitor::Visitor;
 
 pub trait Expr {
-    fn accept_s(&self, p: &dyn Visitor<String>) -> String;
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal;
+    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr>;
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr>;
 }
 
 pub struct Binary {
@@ -70,34 +72,34 @@ impl Unary {
 }
 
 impl Expr for Binary{
-    fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr> {
         return p.visit_binary(self);
     }
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal {
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
         return p.visit_binary(self);
     }
 }
 impl Expr for Grouping{
-    fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr> {
         return p.visit_grouping(self);
     }
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal {
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
         return p.visit_grouping(self);
     }
 }
 impl Expr for Literal{
-    fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr> {
         return p.visit_literal(self);
     }
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal {
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
         return p.visit_literal(self);
     }
 }
 impl Expr for Unary{
-    fn accept_s(&self, p: &dyn Visitor<String>) -> String {
+    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr> {
         return p.visit_unary(self);
     }
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Literal {
-        return p.visit_unary(self);
+    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
+        p.visit_unary(self)
     }
 }

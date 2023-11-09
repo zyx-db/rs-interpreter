@@ -52,12 +52,20 @@ impl Lox {
             eprintln!("parsing err!");
             return;
         }
+
         // let printer = visitor::Printer::new();
         // let str_tree = printer.print(expr.unwrap());
-        // println!("{}", str_tree);
+        // println!("{}", str_tree.ok().unwrap());
+
         let interpreter = Interpreter::new();
         let res = interpreter.evaluate(expr.unwrap());
-        println!("{:?}", res);
+        if res.is_err(){
+            let e = res.err().unwrap();
+            println!("{:?}", e);
+        }
+        else {
+            println!("{:?}", res.ok().unwrap());
+        }
     }
 }
 

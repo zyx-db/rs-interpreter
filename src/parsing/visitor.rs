@@ -1,11 +1,13 @@
+use crate::errors::err::RuntimeErr;
+
 use super::expressions::{Binary, Grouping, Literal, Unary, Expr};
 use super::tokens::TokenType;
 
 pub trait Visitor<T>{
-    fn visit_binary(&self, b: &Binary) -> T;
-    fn visit_grouping(&self, g: &Grouping) -> T;
-    fn visit_literal(&self, l: &Literal) -> T;
-    fn visit_unary(&self, u: &Unary) -> T;
+    fn visit_binary(&self, b: &Binary) -> Result<T, RuntimeErr>;
+    fn visit_grouping(&self, g: &Grouping) -> Result<T, RuntimeErr>;
+    fn visit_literal(&self, l: &Literal) -> Result<T, RuntimeErr>;
+    fn visit_unary(&self, u: &Unary) -> Result<T, RuntimeErr>;
 }
 
 pub struct Printer {}
@@ -14,45 +16,47 @@ impl Printer{
     pub fn new() -> Self{
         Printer {  }
     }
-    pub fn print(&self, e: Box<dyn Expr>) -> String{
-        // "".to_owned()
+    pub fn print(&self, e: Box<dyn Expr>) -> Result<String, RuntimeErr>{
         e.accept_s(self)
     }
 }
 
 impl Visitor<String> for Printer {
-    fn visit_binary(&self, b: &Binary) -> String{
+    fn visit_binary(&self, b: &Binary) -> Result<String, RuntimeErr>{
         eprintln!("visiting Binary");
         let op = b.operator.lexeme.clone();
         let left = b.left.accept_s(self);
         let right = b.right.accept_s(self);
-        return format!("{} {} {}", op, left, right);
+
+
+        return Ok(format!("{} ( {} {} )", op, left?, right?));
     }
-    fn visit_grouping(&self, g: &Grouping) -> String{
+    fn visit_grouping(&self, g: &Grouping) -> Result<String, RuntimeErr>{
         eprintln!("visiting Grouping");
         let val = g.expr.accept_s(self);
-        return format!("({})", val);
+        return Ok(format!("({})", val?));
     }
-    fn visit_literal(&self, l: &Literal) -> String{
+    fn visit_literal(&self, l: &Literal) -> Result<String, RuntimeErr>{
         eprintln!("visiting Literal");
         match l {
             Literal::S(s) => {
-                return s.clone();
+                let res = s.clone();
+                return Ok(res);
             }
             Literal::Int(i) => {
-                return format!("{}", i);
+                return Ok(format!("{}", i));
             }
             Literal::Bool(b) => {
-                return format!("{}", b);
+                return Ok(format!("{}", b));
             }
-            _ => {return "None".to_owned();}
+            _ => {return Ok("None".to_owned());}
         }
     }
-    fn visit_unary(&self, u: &Unary) -> String{
+    fn visit_unary(&self, u: &Unary) -> Result<String, RuntimeErr>{
         eprintln!("visiting Unary");
         let op = u.operator.lexeme.clone();
         let right = u.right.accept_s(self);
-        return format!("({} {})", op, right);
+        return Ok(format!("({} {})", op, right?));
     }
 }
 
@@ -63,7 +67,7 @@ impl Interpreter {
         Interpreter {  }
     }
 
-    pub fn evaluate(&self, e: Box<dyn Expr>) -> Literal {
+    pub fn evaluate(&self, e: Box<dyn Expr>) -> Result<Literal, RuntimeErr> {
         e.accept_l(self)
     }
 
@@ -77,79 +81,103 @@ impl Interpreter {
 }
 
 impl Visitor<Literal> for Interpreter {
-    fn visit_binary(&self, b: &Binary) -> Literal {
+    fn visit_binary(&self, b: &Binary) -> Result<Literal, RuntimeErr> {
         let left = b.left.accept_l(self);
         let right = b.right.accept_l(self);
 
-        match (&b.operator.variant, left, right) {
+        if left.is_err(){
+            return Err(left.err().unwrap());
+        }
+
+        if right.is_err(){
+            return Err(right.err().unwrap());
+        }
+
+        match (&b.operator.variant, left?, right?) {
             // arithmetic
             (TokenType::PLUS, Literal::Int(a), Literal::Int(b)) => {
-                return Literal::Int(a + b);
+                return Ok(Literal::Int(a + b));
             }
             (TokenType::SLASH, Literal::Int(a), Literal::Int(b)) => {
-                return Literal::Int(a / b); 
+                return Ok(Literal::Int(a / b)); 
             }
             (TokenType::MINUS, Literal::Int(a), Literal::Int(b)) => {
-                return Literal::Int(a - b);
+                return Ok(Literal::Int(a - b));
             }
             (TokenType::STAR, Literal::Int(a), Literal::Int(b)) => {
-                return Literal::Int(a * b);
+                return Ok(Literal::Int(a * b));
             }
 
             // string concatenation
             (TokenType::PLUS, Literal::S(a), Literal::S(b)) => {
-                return Literal::S(a.clone() + &b.clone());
+                return Ok(Literal::S(a.clone() + &b.clone()));
             }
 
             // comparison
             (TokenType::GREATER, Literal::Int(a), Literal::Int(b)) => {
-                return Literal::Bool(a > b);
+                return Ok(Literal::Bool(a > b));
             }
             (TokenType::GREATER_EQUAL, Literal::Int(a), Literal::Int(b)) => {
-                return Literal::Bool(a >= b);
+                return Ok(Literal::Bool(a >= b));
             }
             (TokenType::LESS, Literal::Int(a), Literal::Int(b)) => {
-                return Literal::Bool(a < b);
+                return Ok(Literal::Bool(a < b));
             }
             (TokenType::LESS_EQUAL, Literal::Int(a), Literal::Int(b)) => {
-                return Literal::Bool(a <= b);
+                return Ok(Literal::Bool(a <= b));
             }
 
             // equality
             (TokenType::EQUAL_EQUAL, a, b) => {
-                return Literal::Bool(a == b);
+                return Ok(Literal::Bool(a == b));
             }
             (TokenType::BANG_EQUAL, a, b) => {
-                return Literal::Bool(!(a == b));
+                return Ok(Literal::Bool(!(a == b)));
             }
             
+            // invalid types
+            // (TokenType::PLUS, _, _) => {}
+            // (TokenType::MINUS, _, _) => {}
+            // (TokenType::STAR, _, _) => {}
+            // (TokenType::SLASH, _, _) => {}
+
+            // (TokenType::GREATER, _, _) => {}
+            // (TokenType::GREATER_EQUAL, _, _) => {}
+            // (TokenType::LESS, _, _) => {}
+            // (TokenType::LESS_EQUAL, _, _) => {}
+
             // error?
-            (_, _ ,_) => {
-                return Literal::Nil;
+            (a, _ ,_) => {
+                return Err(RuntimeErr::default());
             } 
         }
     }
-    fn visit_grouping(&self, g: &Grouping) -> Literal {
+    fn visit_grouping(&self, g: &Grouping) -> Result<Literal, RuntimeErr> {
         g.expr.accept_l(self)
     } 
-    fn visit_literal(&self, l: &Literal) -> Literal {
-        l.clone()
+    fn visit_literal(&self, l: &Literal) -> Result<Literal, RuntimeErr> {
+        Ok(l.clone())
     }
-    fn visit_unary(&self, u: &Unary) -> Literal {
-        let right = u.right.accept_l(self);
+    fn visit_unary(&self, u: &Unary) -> Result<Literal, RuntimeErr> {
+        let possible = u.right.accept_l(self);
+        if possible.is_err(){
+            let e = possible.err().unwrap();
+            return Err(e);
+        }
 
+        let right = possible?;
         match (&u.operator.variant, right) {
             (TokenType::MINUS, Literal::Int(i)) => {
-                return Literal::Int(-i);
+                return Ok(Literal::Int(-i));
             }
             // (TokenType::MINUS, _) => {
             //     return 
             // }
             (TokenType::BANG, e) => {
-                return Literal::Bool(!self.is_truthy(&e));
+                return Ok(Literal::Bool(!self.is_truthy(&e)));
             }
             (_,  _) => {
-                return Literal::Nil;
+                return Ok(Literal::Nil);
             }
         }
     }
