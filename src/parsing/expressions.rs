@@ -31,26 +31,38 @@ impl Grouping {
 }
 
 #[derive(Clone, Debug)]
-pub enum Literal {
+pub enum Value {
     S(String),
     Int(f64),
     Bool(bool),
     Nil
 }
 
-impl PartialEq for Literal {
+#[derive(Clone, Debug)]
+pub struct Literal {
+    pub val: Value,
+    token: Token,
+}
+
+impl Literal {
+    pub fn new(token: Token, val: Value) -> Self {
+        Literal { val, token }
+    }
+}
+
+impl PartialEq for Value {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
-            (Literal::Int(a), Literal::Int(b)) => {
+            (Value::Int(a), Value::Int(b)) => {
                 a == b
             }
-            (Literal::S(a), Literal::S(b)) => {
+            (Value::S(a), Value::S(b)) => {
                 a == b
             }
-            (Literal::Bool(a), Literal::Bool(b)) => {
+            (Value::Bool(a), Value::Bool(b)) => {
                 a == b
             }
-            (Literal::Nil, Literal::Nil) => {true}
+            (Value::Nil, Value::Nil) => {true}
             (_, _) => {false}
         } 
     }

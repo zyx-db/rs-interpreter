@@ -1,6 +1,6 @@
 use crate::errors::err::RuntimeErr;
 
-use super::expressions::{Binary, Grouping, Literal, Unary, Expr};
+use super::expressions::{Binary, Grouping, Literal, Unary, Expr, Value};
 use super::tokens::TokenType;
 
 pub trait Visitor<T>{
@@ -38,15 +38,15 @@ impl Visitor<String> for Printer {
     }
     fn visit_literal(&self, l: &Literal) -> Result<String, RuntimeErr>{
         eprintln!("visiting Literal");
-        match l {
-            Literal::S(s) => {
+        match &l.val {
+            Value::S(s) => {
                 let res = s.clone();
                 return Ok(res);
             }
-            Literal::Int(i) => {
+            Value::Int(i) => {
                 return Ok(format!("{}", i));
             }
-            Literal::Bool(b) => {
+            Value::Bool(b) => {
                 return Ok(format!("{}", b));
             }
             _ => {return Ok("None".to_owned());}
@@ -71,10 +71,10 @@ impl Interpreter {
         e.accept_l(self)
     }
 
-    fn is_truthy(&self, expr: &Literal) -> bool {
+    fn is_truthy(&self, expr: &Value) -> bool {
         match expr {
-           Literal::Nil => {return false;} 
-           Literal::Bool(res) => {return *res;}
+           Value::Nil => {return false;} 
+           Value::Bool(res) => {return *res;}
            _ => {return true;}
         }
     }
@@ -93,46 +93,101 @@ impl Visitor<Literal> for Interpreter {
             return Err(right.err().unwrap());
         }
 
-        match (&b.operator.variant, left?, right?) {
+        match (&b.operator.variant, left?.val, right?.val) {
             // arithmetic
-            (TokenType::PLUS, Literal::Int(a), Literal::Int(b)) => {
-                return Ok(Literal::Int(a + b));
+            (TokenType::PLUS, Value::Int(x), Value::Int(y)) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Int(x + y)
+                    )
+                );
             }
-            (TokenType::SLASH, Literal::Int(a), Literal::Int(b)) => {
-                return Ok(Literal::Int(a / b)); 
+            (TokenType::SLASH, Value::Int(x), Value::Int(y)) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Int(x / y)
+                    )
+                );
             }
-            (TokenType::MINUS, Literal::Int(a), Literal::Int(b)) => {
-                return Ok(Literal::Int(a - b));
+            (TokenType::MINUS, Value::Int(x), Value::Int(y)) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Int(x - y)
+                    )
+                );
             }
-            (TokenType::STAR, Literal::Int(a), Literal::Int(b)) => {
-                return Ok(Literal::Int(a * b));
+            (TokenType::STAR, Value::Int(x), Value::Int(y)) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Int(x * y)
+                    )
+                );
             }
 
             // string concatenation
-            (TokenType::PLUS, Literal::S(a), Literal::S(b)) => {
-                return Ok(Literal::S(a.clone() + &b.clone()));
+            (TokenType::PLUS, Value::S(x), Value::S(y)) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::S(x.clone() + &y.clone())
+                    )
+                );
             }
 
             // comparison
-            (TokenType::GREATER, Literal::Int(a), Literal::Int(b)) => {
-                return Ok(Literal::Bool(a > b));
+            (TokenType::GREATER, Value::Int(x), Value::Int(y)) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Bool(x > y)
+                    )
+                );
             }
-            (TokenType::GREATER_EQUAL, Literal::Int(a), Literal::Int(b)) => {
-                return Ok(Literal::Bool(a >= b));
+            (TokenType::GREATER_EQUAL, Value::Int(x), Value::Int(y)) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Bool(x >= y)
+                    )
+                );
             }
-            (TokenType::LESS, Literal::Int(a), Literal::Int(b)) => {
-                return Ok(Literal::Bool(a < b));
+            (TokenType::LESS, Value::Int(x), Value::Int(y)) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Bool(x < y)
+                    )
+                );
             }
-            (TokenType::LESS_EQUAL, Literal::Int(a), Literal::Int(b)) => {
-                return Ok(Literal::Bool(a <= b));
+            (TokenType::LESS_EQUAL, Value::Int(x), Value::Int(y)) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Bool(x <= y)
+                    )
+                );
             }
 
             // equality
-            (TokenType::EQUAL_EQUAL, a, b) => {
-                return Ok(Literal::Bool(a == b));
+            (TokenType::EQUAL_EQUAL, x, y) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Bool(x == y)
+                    )
+                );
             }
-            (TokenType::BANG_EQUAL, a, b) => {
-                return Ok(Literal::Bool(!(a == b)));
+            (TokenType::BANG_EQUAL, x, y) => {
+                return Ok(
+                    Literal::new(
+                        b.operator.clone(),
+                        Value::Bool(!(x == y))
+                    )
+                );
             }
             
             // invalid types
@@ -147,8 +202,13 @@ impl Visitor<Literal> for Interpreter {
             // (TokenType::LESS_EQUAL, _, _) => {}
 
             // error?
-            (a, _ ,_) => {
-                return Err(RuntimeErr::default());
+            (_, _ ,_) => {
+                return Err(
+                    RuntimeErr::new(
+                        "invalid arguments to binary operation".to_owned(),
+                        b.operator.clone()
+                    )
+                );
             } 
         }
     }
@@ -166,18 +226,33 @@ impl Visitor<Literal> for Interpreter {
         }
 
         let right = possible?;
-        match (&u.operator.variant, right) {
-            (TokenType::MINUS, Literal::Int(i)) => {
-                return Ok(Literal::Int(-i));
+        match (&u.operator.variant, right.val) {
+            (TokenType::MINUS, Value::Int(i)) => {
+                return Ok(
+                    Literal::new(
+                        u.operator.clone(),
+                        Value::Int(-i)
+                    )
+                );
             }
             // (TokenType::MINUS, _) => {
             //     return 
             // }
             (TokenType::BANG, e) => {
-                return Ok(Literal::Bool(!self.is_truthy(&e)));
+                return Ok(
+                    Literal::new(
+                        u.operator.clone(),
+                        Value::Bool(!(self.is_truthy(&e)))
+                    )
+                );
             }
             (_,  _) => {
-                return Ok(Literal::Nil);
+                return Ok(
+                    Literal::new(
+                        u.operator.clone(),
+                        Value::Nil
+                    )
+                );
             }
         }
     }

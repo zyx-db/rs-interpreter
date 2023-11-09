@@ -161,21 +161,46 @@ impl Parser {
 
     fn primary(&mut self) -> Option<Box<dyn Expr>> {
         if self.matching(&vec![TokenType::FALSE]) {
-            return Some(Box::new(Literal::Bool(false)));
+            return Some(Box::new(
+                    Literal::new(
+                        self.previous(),
+                        Value::Bool(false)
+                    )
+                ));
         }
         if self.matching(&vec![TokenType::TRUE]) {
-            return Some(Box::new(Literal::Bool(true)));
+            return Some(Box::new(
+                    Literal::new(
+                        self.previous(),
+                        Value::Bool(true)
+                        )
+                    ));
         }
         if self.matching(&vec![TokenType::NIL]) {
-            return Some(Box::new(Literal::Nil));
+            return Some(Box::new(
+                    Literal::new(
+                        self.previous(),
+                        Value::Nil
+                        )
+                    ));
         }
         if self.matching(&vec![TokenType::NUMBER]) {
             let val = self.previous().int.unwrap();
-            return Some(Box::new(Literal::Int(val)));
+            return Some(Box::new(
+                    Literal::new(
+                        self.previous(),
+                        Value::Int(val)
+                        )
+                    ));
         }
         if self.matching(&vec![TokenType::STRING]) {
             let s = self.previous().string.unwrap();
-            return Some(Box::new(Literal::S(s)));
+            return Some(Box::new(
+                    Literal::new(
+                        self.previous(),
+                        Value::S(s)
+                        )
+                    ));
         }
         if self.matching(&vec![TokenType::LEFT_PAREN]) {
            let val = self.expression(); 

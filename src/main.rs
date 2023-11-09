@@ -29,10 +29,9 @@ impl Lox {
             if input.to_lowercase() == ".exit" {
                 break;
             }
-            println!("you entered {}", input);
-            _ = stdout().flush();
             self.run(&input);
             print!("> ");
+            _ = stdout().flush();
         }
     }
 
@@ -45,6 +44,7 @@ impl Lox {
         }
 
         let tokens = tokens_result.unwrap();
+        // println!("{:?}", tokens);
         
         let mut parser = parser::Parser::new(tokens);
         let expr = parser.parse();
@@ -57,14 +57,14 @@ impl Lox {
         // let str_tree = printer.print(expr.unwrap());
         // println!("{}", str_tree.ok().unwrap());
 
-        let interpreter = Interpreter::new();
+        let mut interpreter = visitor::Interpreter::new();
         let res = interpreter.evaluate(expr.unwrap());
         if res.is_err(){
             let e = res.err().unwrap();
             println!("{:?}", e);
         }
         else {
-            println!("{:?}", res.ok().unwrap());
+            println!("{:?}", res.ok().unwrap().val);
         }
     }
 }
@@ -74,8 +74,6 @@ use std::{
     fs::File,
     io::{self, stdout, BufRead, BufReader, Write},
 };
-
-use crate::parsing::visitor::Interpreter;
 
 fn main() {
     let args: Vec<String> = env::args().collect();

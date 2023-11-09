@@ -15,7 +15,11 @@ pub struct RuntimeErr {
 }
 
 impl RuntimeErr {
-    pub fn default() -> Self{
+    pub fn default() -> Self {
         RuntimeErr { message: "ERR".to_owned(), token: Token { variant: crate::parsing::tokens::TokenType::BANG, lexeme: "!".to_owned(), string: None, int: None, line: 1 } }
+    }
+
+    pub fn new(message: String, token: Token) -> Self {
+        RuntimeErr { message, token }
     }
 }
