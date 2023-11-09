@@ -36,6 +36,28 @@ pub enum Literal {
     Nil
 }
 
+impl PartialEq for Literal {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Literal::Int(a), Literal::Int(b)) => {
+                a == b
+            }
+            (Literal::S(a), Literal::S(b)) => {
+                a == b
+            }
+            (Literal::Bool(a), Literal::Bool(b)) => {
+                a == b
+            }
+            (Literal::Nil, Literal::Nil) => {true}
+            (_, _) => {false}
+        } 
+    }
+
+    fn ne(&self, other: &Self) -> bool {
+        !self.eq(other)
+    }
+}
+
 pub struct Unary {
     pub operator: Token,
     pub right: Box<dyn Expr>,

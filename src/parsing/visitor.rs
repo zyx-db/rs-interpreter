@@ -66,6 +66,14 @@ impl Interpreter {
     pub fn evaluate(&self, e: Box<dyn Expr>) -> Literal {
         e.accept_l(self)
     }
+
+    fn is_truthy(&self, expr: &Literal) -> bool {
+        match expr {
+           Literal::Nil => {return false;} 
+           Literal::Bool(res) => {return *res;}
+           _ => {return true;}
+        }
+    }
 }
 
 impl Visitor<Literal> for Interpreter {
@@ -74,6 +82,7 @@ impl Visitor<Literal> for Interpreter {
         let right = b.right.accept_l(self);
 
         match (&b.operator.variant, left, right) {
+            // arithmetic
             (TokenType::PLUS, Literal::Int(a), Literal::Int(b)) => {
                 return Literal::Int(a + b);
             }
@@ -86,6 +95,35 @@ impl Visitor<Literal> for Interpreter {
             (TokenType::STAR, Literal::Int(a), Literal::Int(b)) => {
                 return Literal::Int(a * b);
             }
+
+            // string concatenation
+            (TokenType::PLUS, Literal::S(a), Literal::S(b)) => {
+                return Literal::S(a.clone() + &b.clone());
+            }
+
+            // comparison
+            (TokenType::GREATER, Literal::Int(a), Literal::Int(b)) => {
+                return Literal::Bool(a > b);
+            }
+            (TokenType::GREATER_EQUAL, Literal::Int(a), Literal::Int(b)) => {
+                return Literal::Bool(a >= b);
+            }
+            (TokenType::LESS, Literal::Int(a), Literal::Int(b)) => {
+                return Literal::Bool(a < b);
+            }
+            (TokenType::LESS_EQUAL, Literal::Int(a), Literal::Int(b)) => {
+                return Literal::Bool(a <= b);
+            }
+
+            // equality
+            (TokenType::EQUAL_EQUAL, a, b) => {
+                return Literal::Bool(a == b);
+            }
+            (TokenType::BANG_EQUAL, a, b) => {
+                return Literal::Bool(!(a == b));
+            }
+            
+            // error?
             (_, _ ,_) => {
                 return Literal::Nil;
             } 
@@ -103,6 +141,12 @@ impl Visitor<Literal> for Interpreter {
         match (&u.operator.variant, right) {
             (TokenType::MINUS, Literal::Int(i)) => {
                 return Literal::Int(-i);
+            }
+            // (TokenType::MINUS, _) => {
+            //     return 
+            // }
+            (TokenType::BANG, e) => {
+                return Literal::Bool(!self.is_truthy(&e));
             }
             (_,  _) => {
                 return Literal::Nil;
