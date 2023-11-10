@@ -1,5 +1,6 @@
 use crate::errors::err::error;
 
+use super::statements::*;
 use super::tokens::{Token, TokenType};
 use super::expressions::*;
 
@@ -9,12 +10,27 @@ pub struct Parser {
 }
 
 impl Parser {
-    pub fn parse(&mut self) -> Option<Box<dyn Expr>> {
-       return self.expression();
+    pub fn parse(&mut self) -> Option<Vec<Box<dyn Stmt>>> {
+        let mut statements = Vec::new();
+        while !self.is_at_end() {
+            let cur = self.statement();
+            if cur.is_some() {
+               statements.push(cur.unwrap());
+            }
+        }
+
+        return Some(statements)
     }
 
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
+    }
+
+    fn statement(&mut self) -> Option<Box<dyn Stmt>> {
+        if self.matching(&vec![TokenType::PRINT]) {
+            return self.print_statement();
+        }
+        self.expression_stmt()
     }
 
     fn expression(&mut self) -> Option<Box<dyn Expr>> {
@@ -210,6 +226,28 @@ impl Parser {
            self.consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.".to_owned());
            return Some(Box::new(Grouping::new(expr)));
         }
+        None
+    }
+
+    fn print_statement(&mut self) -> Option<Box<dyn Stmt>> {
+        let expr = self.expression();
+        self.consume(TokenType::SEMICOLON, "expecting ';' after expr.".to_owned());
+    
+        if expr.is_some() {
+            return Some(Box::new(Print::new(expr.unwrap())));
+        }
+
+        None
+    }
+
+    fn expression_stmt(&mut self) -> Option<Box<dyn Stmt>> {
+        let expr = self.expression();
+        self.consume(TokenType::SEMICOLON, "expecting ';' after expr".to_owned());
+
+        if expr.is_some() {
+            return Some(Box::new(ExprStmt::new(expr.unwrap())));
+        }
+
         None
     }
 

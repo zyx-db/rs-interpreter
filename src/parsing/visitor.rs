@@ -1,63 +1,16 @@
 use crate::errors::err::RuntimeErr;
 
 use super::expressions::{Binary, Grouping, Literal, Unary, Expr, Value};
-use super::tokens::TokenType;
+use super::statements::{Stmt, Print, ExprStmt};
+use super::tokens::{TokenType, Token};
 
 pub trait Visitor<T>{
     fn visit_binary(&self, b: &Binary) -> Result<T, RuntimeErr>;
     fn visit_grouping(&self, g: &Grouping) -> Result<T, RuntimeErr>;
     fn visit_literal(&self, l: &Literal) -> Result<T, RuntimeErr>;
     fn visit_unary(&self, u: &Unary) -> Result<T, RuntimeErr>;
-}
-
-pub struct Printer {}
-
-impl Printer{
-    pub fn new() -> Self{
-        Printer {  }
-    }
-    pub fn print(&self, e: Box<dyn Expr>) -> Result<String, RuntimeErr>{
-        e.accept_s(self)
-    }
-}
-
-impl Visitor<String> for Printer {
-    fn visit_binary(&self, b: &Binary) -> Result<String, RuntimeErr>{
-        eprintln!("visiting Binary");
-        let op = b.operator.lexeme.clone();
-        let left = b.left.accept_s(self);
-        let right = b.right.accept_s(self);
-
-
-        return Ok(format!("{} ( {} {} )", op, left?, right?));
-    }
-    fn visit_grouping(&self, g: &Grouping) -> Result<String, RuntimeErr>{
-        eprintln!("visiting Grouping");
-        let val = g.expr.accept_s(self);
-        return Ok(format!("({})", val?));
-    }
-    fn visit_literal(&self, l: &Literal) -> Result<String, RuntimeErr>{
-        eprintln!("visiting Literal");
-        match &l.val {
-            Value::S(s) => {
-                let res = s.clone();
-                return Ok(res);
-            }
-            Value::Int(i) => {
-                return Ok(format!("{}", i));
-            }
-            Value::Bool(b) => {
-                return Ok(format!("{}", b));
-            }
-            _ => {return Ok("None".to_owned());}
-        }
-    }
-    fn visit_unary(&self, u: &Unary) -> Result<String, RuntimeErr>{
-        eprintln!("visiting Unary");
-        let op = u.operator.lexeme.clone();
-        let right = u.right.accept_s(self);
-        return Ok(format!("({} {})", op, right?));
-    }
+    fn visit_expr_stmt(&self, s: &ExprStmt) -> Result<T, RuntimeErr>;
+    fn visit_print_stmt(&self, s: &Print) -> Result<T, RuntimeErr>;
 }
 
 pub struct Interpreter {}
@@ -67,8 +20,20 @@ impl Interpreter {
         Interpreter {  }
     }
 
-    pub fn evaluate(&self, e: Box<dyn Expr>) -> Result<Literal, RuntimeErr> {
-        e.accept_l(self)
+    pub fn interpret(&mut self, stmts: Vec<Box<dyn Stmt>>) {
+        for s in stmts {
+            let res = self.execute(s);
+            if res.is_err(){
+                let e = res.err().unwrap();
+                eprintln!("{:?}", e);
+                break;
+            }
+        }
+        
+    }
+
+    fn evaluate(&self, e: &Box<dyn Expr>) -> Result<Literal, RuntimeErr> {
+        e.accept(self)
     }
 
     fn is_truthy(&self, expr: &Value) -> bool {
@@ -78,12 +43,16 @@ impl Interpreter {
            _ => {return true;}
         }
     }
+
+    fn execute(&mut self, stmt: Box<dyn Stmt>) -> Result<Literal, RuntimeErr>{
+        stmt.accept(self)
+    }
 }
 
 impl Visitor<Literal> for Interpreter {
     fn visit_binary(&self, b: &Binary) -> Result<Literal, RuntimeErr> {
-        let left = b.left.accept_l(self);
-        let right = b.right.accept_l(self);
+        let left = b.left.accept(self);
+        let right = b.right.accept(self);
 
         if left.is_err(){
             return Err(left.err().unwrap());
@@ -213,13 +182,13 @@ impl Visitor<Literal> for Interpreter {
         }
     }
     fn visit_grouping(&self, g: &Grouping) -> Result<Literal, RuntimeErr> {
-        g.expr.accept_l(self)
+        g.expr.accept(self)
     } 
     fn visit_literal(&self, l: &Literal) -> Result<Literal, RuntimeErr> {
         Ok(l.clone())
     }
     fn visit_unary(&self, u: &Unary) -> Result<Literal, RuntimeErr> {
-        let possible = u.right.accept_l(self);
+        let possible = u.right.accept(self);
         if possible.is_err(){
             let e = possible.err().unwrap();
             return Err(e);
@@ -255,5 +224,16 @@ impl Visitor<Literal> for Interpreter {
                 );
             }
         }
+    }
+
+    fn visit_expr_stmt(&self, s: &ExprStmt) -> Result<Literal, RuntimeErr> {
+        self.evaluate(&s.expr);
+        return Ok(Literal::default());
+    }
+
+    fn visit_print_stmt(&self, s: &Print) -> Result<Literal, RuntimeErr> {
+        let value = self.evaluate(&s.expr);
+        println!("{:?}", value);
+        return Ok(Literal::default());
     }
 }

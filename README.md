@@ -6,4 +6,4 @@ Currently working through chapter 6, with the error handling. I also need to imp
 
 # TODO:
 
-Better error messages (need to use Tokens in the parser, rather than the TokenTypes / Expr)
+- fix infinite loop when repl has capitals (I think it is due to pRint being interpreted as an identifier, and we lack support as of now).

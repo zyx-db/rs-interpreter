@@ -44,7 +44,7 @@ impl Lox {
         }
 
         let tokens = tokens_result.unwrap();
-        // println!("{:?}", tokens);
+        println!("{:?}", tokens);
         
         let mut parser = parser::Parser::new(tokens);
         let expr = parser.parse();
@@ -53,19 +53,8 @@ impl Lox {
             return;
         }
 
-        // let printer = visitor::Printer::new();
-        // let str_tree = printer.print(expr.unwrap());
-        // println!("{}", str_tree.ok().unwrap());
-
         let mut interpreter = visitor::Interpreter::new();
-        let res = interpreter.evaluate(expr.unwrap());
-        if res.is_err(){
-            let e = res.err().unwrap();
-            println!("{:?}", e);
-        }
-        else {
-            println!("{:?}", res.ok().unwrap().val);
-        }
+        interpreter.interpret(expr.unwrap());        
     }
 }
 

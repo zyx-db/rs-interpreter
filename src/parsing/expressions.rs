@@ -4,8 +4,7 @@ use super::tokens::Token;
 use super::visitor::Visitor;
 
 pub trait Expr {
-    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr>;
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr>;
+    fn accept(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr>;
 }
 
 pub struct Binary {
@@ -48,6 +47,12 @@ impl Literal {
     pub fn new(token: Token, val: Value) -> Self {
         Literal { val, token }
     }
+    pub fn default() -> Self {
+        return Literal::new(
+            Token::new(super::tokens::TokenType::NIL, "NIL".to_owned(), 1),
+            Value::Nil
+        )
+    }
 }
 
 impl PartialEq for Value {
@@ -84,34 +89,22 @@ impl Unary {
 }
 
 impl Expr for Binary{
-    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr> {
-        return p.visit_binary(self);
-    }
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
+    fn accept(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
         return p.visit_binary(self);
     }
 }
 impl Expr for Grouping{
-    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr> {
-        return p.visit_grouping(self);
-    }
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
+    fn accept(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
         return p.visit_grouping(self);
     }
 }
 impl Expr for Literal{
-    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr> {
-        return p.visit_literal(self);
-    }
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
+    fn accept(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
         return p.visit_literal(self);
     }
 }
 impl Expr for Unary{
-    fn accept_s(&self, p: &dyn Visitor<String>) -> Result<String, RuntimeErr> {
-        return p.visit_unary(self);
-    }
-    fn accept_l(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
+    fn accept(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr> {
         p.visit_unary(self)
     }
 }
