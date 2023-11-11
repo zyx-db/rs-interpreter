@@ -1,7 +1,9 @@
 mod errors;
 mod parsing;
+mod runtime;
 
-use parsing::{scanner, parser, visitor};
+use parsing::{scanner, parser};
+use runtime::interpreter;
 
 struct Lox {
     has_error: bool,
@@ -53,7 +55,7 @@ impl Lox {
             return;
         }
 
-        let mut interpreter = visitor::Interpreter::new();
+        let mut interpreter = interpreter::Interpreter::new();
         interpreter.interpret(expr.unwrap());        
     }
 }

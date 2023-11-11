@@ -1,8 +1,8 @@
 use crate::errors::err::RuntimeErr;
 
-use super::expressions::{Binary, Grouping, Literal, Unary, Expr, Value};
-use super::statements::{Stmt, Print, ExprStmt};
-use super::tokens::{TokenType, Token};
+use crate::parsing::expressions::{Binary, Grouping, Literal, Unary, Expr, Value};
+use crate::parsing::statements::{Stmt, Print, ExprStmt};
+use crate::parsing::tokens::{TokenType, Token};
 
 pub trait Visitor<T>{
     fn visit_binary(&self, b: &Binary) -> Result<T, RuntimeErr>;

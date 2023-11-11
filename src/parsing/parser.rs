@@ -13,7 +13,7 @@ impl Parser {
     pub fn parse(&mut self) -> Option<Vec<Box<dyn Stmt>>> {
         let mut statements = Vec::new();
         while !self.is_at_end() {
-            let cur = self.statement();
+            let cur = self.declaration();
             if cur.is_some() {
                statements.push(cur.unwrap());
             }
@@ -24,6 +24,43 @@ impl Parser {
 
     pub fn new(tokens: Vec<Token>) -> Self {
         Parser { tokens, current: 0 }
+    }
+
+    fn declaration(&mut self) -> Option<Box<dyn Stmt>> {
+        if self.matching(&vec![TokenType::IDENTIFIER]){
+            let res = self.var_declaration();
+            if res.is_none() {
+                self.synchronize();
+                return None;
+            }
+            return res;
+        }
+
+        let res = self.statement();
+        if res.is_none() {
+            self.synchronize();
+            return None;
+        }
+        res
+    }
+
+    fn var_declaration(&mut self) -> Option<Box<dyn Stmt>> {
+        let name = self.consume(TokenType::IDENTIFIER, "expect var name".to_owned());
+        if name.is_none() {
+            return None;
+        }
+
+        let mut init: Option<Box<dyn Expr>> = None;
+        if self.matching(&vec![TokenType::EQUAL]) {
+            init = self.expression(); 
+        }
+
+        if init.is_none() {
+            return None;
+        }
+
+        self.consume(TokenType::SEMICOLON, "expecting ';' after variable declaration".to_owned());
+        return Some(Box::new(Dec::new(name.unwrap(), init.unwrap())));
     }
 
     fn statement(&mut self) -> Option<Box<dyn Stmt>> {
@@ -226,6 +263,7 @@ impl Parser {
            self.consume(TokenType::RIGHT_PAREN, "Expect ')' after expression.".to_owned());
            return Some(Box::new(Grouping::new(expr)));
         }
+
         None
     }
 

@@ -1,7 +1,7 @@
 use crate::errors::err::RuntimeErr;
+use crate::runtime::interpreter::Visitor;
 
 use super::tokens::Token;
-use super::visitor::Visitor;
 
 pub trait Expr {
     fn accept(&self, p: &dyn Visitor<Literal>) -> Result<Literal, RuntimeErr>;
